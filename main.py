@@ -6,6 +6,8 @@ import sys
 
 from analyzer.pose import PoseExtractor
 from analyzer.segmenter import segment_reps
+from analyzer.metrics import compute_rep_metrics, aggregate_session
+from analyzer.classifier import train_and_label
 
 logger = logging.getLogger("shotlab")
 
@@ -53,7 +55,28 @@ def main(argv=None):
             f"end={end} ({end/fps:.2f}s)"
         )
 
-    return frames, fps, reps_bounds, args
+    if not reps_bounds:
+        logger.warning("No reps detected — skipping metrics, classifier, and report.")
+        return frames, fps, [], {}, args
+
+    reps = compute_rep_metrics(reps_bounds, frames)
+    if len(reps) < args.min_reps:
+        logger.info(
+            "Only %d rep(s) detected (< --min-reps=%d); classifier will label all reps 'unclassified'.",
+            len(reps), args.min_reps,
+        )
+    reps = train_and_label(reps, output_dir=args.output, min_reps=args.min_reps)
+    session_agg = aggregate_session(reps)
+
+    print(f"\n{'rep_id':>6} | {'elbow':>7} | {'knee':>7} | {'wrist':>7} | {'arc':>7} | label")
+    for rep in reps:
+        print(
+            f"{rep['rep_id']:>6} | {rep['elbow_at_release']:>7.1f} | "
+            f"{rep['knee_bend_at_setup']:>7.1f} | {rep['wrist_follow_through']:>7.1f} | "
+            f"{rep['arc_proxy']:>7.1f} | {rep['label']}"
+        )
+
+    return frames, fps, reps, session_agg, args
 
 
 if __name__ == "__main__":
