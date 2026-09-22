@@ -4,7 +4,7 @@ import logging
 import cv2
 import mediapipe as mp
 
-from analyzer.angles import compute_angles, JOINT_LANDMARKS, VISIBILITY_THRESHOLD
+from analyzer.angles import compute_angles, VISIBILITY_THRESHOLD, SHOOTING_SIDES
 from analyzer.smoothing import smooth_landmarks
 
 logger = logging.getLogger(__name__)
@@ -34,14 +34,27 @@ LANDMARK_NAMES = {
     for enum_name, name in _ENUM_TO_NAME.items()
 }
 
-REQUIRED_LANDMARKS = tuple(
-    sorted({name for triple in JOINT_LANDMARKS.values() for name in triple})
-)
+# Both knees/hips/ankles are always required (setup-stance detection checks both
+# legs regardless of shooting side); both shoulders are required for the
+# elbow-flare metric's shoulder-width normalization; only the shooting-side arm
+# (elbow/wrist/index) needs to be visible, so the off-hand can be off-frame.
+def required_landmarks(shooting_side: str) -> tuple:
+    if shooting_side not in SHOOTING_SIDES:
+        raise ValueError(f"shooting_side must be one of {SHOOTING_SIDES}, got {shooting_side!r}")
+    names = {
+        "right_hip", "right_knee", "right_ankle",
+        "left_hip", "left_knee", "left_ankle",
+        "right_shoulder", "left_shoulder",
+        f"{shooting_side}_elbow", f"{shooting_side}_wrist", f"{shooting_side}_index",
+    }
+    return tuple(sorted(names))
 
 
 class PoseExtractor:
-    def __init__(self, model_complexity: int = 1):
+    def __init__(self, model_complexity: int = 1, shooting_side: str = "right"):
         self.model_complexity = model_complexity
+        self.shooting_side = shooting_side
+        self.required_landmarks = required_landmarks(shooting_side)
 
     def extract(self, video_path: str):
         cap = cv2.VideoCapture(video_path)
@@ -95,7 +108,7 @@ class PoseExtractor:
         if landmarks is None:
             return None
 
-        for required_name in REQUIRED_LANDMARKS:
+        for required_name in self.required_landmarks:
             lm = landmarks.get(required_name)
             if lm is None or lm["visibility"] < VISIBILITY_THRESHOLD:
                 return None

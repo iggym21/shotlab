@@ -1,7 +1,14 @@
 import math
 import pytest
 
-from analyzer.angles import angle_between, compute_angles, JOINT_LANDMARKS, VISIBILITY_THRESHOLD
+from analyzer.angles import (
+    angle_between,
+    compute_angles,
+    JOINT_LANDMARKS,
+    VISIBILITY_THRESHOLD,
+    SHOOTING_SIDES,
+    side_joint_name,
+)
 
 
 def test_angle_between_right_angle():
@@ -72,3 +79,19 @@ def test_compute_angles_covers_all_expected_joints():
             landmarks[name] = _lm(0.1, 0.1)
     angles = compute_angles(landmarks)
     assert set(angles.keys()) == set(JOINT_LANDMARKS.keys())
+
+
+def test_joint_landmarks_has_full_mirrored_set_for_both_sides():
+    for joint in ("elbow", "knee", "wrist", "hip", "shoulder"):
+        assert f"{joint}_right" in JOINT_LANDMARKS
+        assert f"{joint}_left" in JOINT_LANDMARKS
+
+
+def test_side_joint_name_builds_expected_keys():
+    assert side_joint_name("elbow", "right") == "elbow_right"
+    assert side_joint_name("wrist", "left") == "wrist_left"
+
+
+def test_side_joint_name_rejects_invalid_side():
+    with pytest.raises(ValueError):
+        side_joint_name("elbow", "both")

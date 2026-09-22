@@ -10,9 +10,21 @@ JOINT_LANDMARKS = {
     "knee_right": ("right_hip", "right_knee", "right_ankle"),
     "knee_left": ("left_hip", "left_knee", "left_ankle"),
     "wrist_right": ("right_elbow", "right_wrist", "right_index"),
+    "wrist_left": ("left_elbow", "left_wrist", "left_index"),
     "hip_right": ("right_shoulder", "right_hip", "right_knee"),
+    "hip_left": ("left_shoulder", "left_hip", "left_knee"),
     "shoulder_right": ("right_elbow", "right_shoulder", "right_hip"),
+    "shoulder_left": ("left_elbow", "left_shoulder", "left_hip"),
 }
+
+SHOOTING_SIDES = ("right", "left")
+
+
+def side_joint_name(joint: str, shooting_side: str) -> str:
+    """joint: one of 'elbow', 'knee', 'wrist', 'hip', 'shoulder'. Returns e.g. 'elbow_left'."""
+    if shooting_side not in SHOOTING_SIDES:
+        raise ValueError(f"shooting_side must be one of {SHOOTING_SIDES}, got {shooting_side!r}")
+    return f"{joint}_{shooting_side}"
 
 
 def angle_between(a, b, c) -> float:
