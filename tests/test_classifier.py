@@ -52,3 +52,11 @@ def test_train_and_label_mutates_and_returns_same_list(tmp_path):
     reps = [_rep(i, 170 + i, 140 + i, 80 + i, 90 + i) for i in range(4)]
     result = train_and_label(reps, output_dir=str(tmp_path), min_reps=3)
     assert result is reps
+
+
+def test_train_and_label_handles_identical_reps_without_crashing(tmp_path):
+    # Identical feature vectors can make KMeans collapse to a single effective
+    # cluster, which previously crashed LogisticRegression.fit on single-class data.
+    reps = [_rep(i, 170, 140, 80, 90) for i in range(4)]
+    result = train_and_label(reps, output_dir=str(tmp_path), min_reps=3)
+    assert [r["label"] for r in result] == ["consistent"] * 4

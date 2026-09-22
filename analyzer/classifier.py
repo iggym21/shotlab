@@ -36,6 +36,13 @@ def train_and_label(reps, output_dir: str = "output", min_reps: int = 3):
     kmeans = KMeans(n_clusters=2, random_state=0, n_init=10)
     cluster_ids = kmeans.fit_predict(X_scaled)
 
+    if len(np.unique(cluster_ids)) < 2:
+        # All reps landed in one cluster (e.g. near-identical metrics) — nothing to
+        # meaningfully split, and LogisticRegression can't fit on a single class.
+        for rep in reps:
+            rep["label"] = "consistent"
+        return reps
+
     count_0 = int(np.sum(cluster_ids == 0))
     count_1 = int(np.sum(cluster_ids == 1))
 
