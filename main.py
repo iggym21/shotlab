@@ -4,13 +4,61 @@ import logging
 import os
 import sys
 
+import cv2
+
 from analyzer.pose import PoseExtractor
 from analyzer.segmenter import segment_reps
 from analyzer.metrics import compute_rep_metrics, aggregate_session
 from analyzer.classifier import train_and_label
 from analyzer.report import save_json, save_chart
+from analyzer.overlay import draw_frame
 
 logger = logging.getLogger("shotlab")
+
+
+def _build_frame_rep_lookup(reps):
+    """frame_idx -> (rep_id, in_rep) for every frame covered by any rep."""
+    lookup = {}
+    for rep in reps:
+        for idx in range(rep["start_frame"], rep["end_frame"] + 1):
+            lookup[idx] = (rep["rep_id"], True)
+    return lookup
+
+
+def render_annotated_video(input_path: str, output_dir: str, frames: list, reps: list, fps: float) -> str:
+    cap = cv2.VideoCapture(input_path)
+    if not cap.isOpened():
+        raise FileNotFoundError(f"Could not reopen video for rendering: {input_path}")
+
+    width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+    height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+
+    basename = os.path.basename(input_path)
+    name, _ = os.path.splitext(basename)
+    output_path = os.path.join(output_dir, f"annotated_{name}.mp4")
+
+    fourcc = cv2.VideoWriter_fourcc(*"mp4v")
+    writer = cv2.VideoWriter(output_path, fourcc, fps, (width, height))
+
+    frame_rep_lookup = _build_frame_rep_lookup(reps)
+
+    frame_idx = 0
+    while True:
+        ok, raw_frame = cap.read()
+        if not ok:
+            break
+
+        frame_data = frames[frame_idx] if frame_idx < len(frames) else None
+        rep_id, in_rep = frame_rep_lookup.get(frame_idx, (None, False))
+        timestamp_s = frame_idx / fps
+
+        annotated = draw_frame(raw_frame, frame_data, rep_id, timestamp_s, in_rep)
+        writer.write(annotated)
+        frame_idx += 1
+
+    cap.release()
+    writer.release()
+    return output_path
 
 
 def build_arg_parser() -> argparse.ArgumentParser:
@@ -81,6 +129,10 @@ def main(argv=None):
     chart_path = save_chart(reps, session_agg, args.output)
     print(f"\nWrote {json_path}")
     print(f"Wrote {chart_path}")
+
+    if not args.no_overlay:
+        video_path = render_annotated_video(args.input, args.output, frames, reps, fps)
+        print(f"Wrote {video_path}")
 
     return frames, fps, reps, session_agg, args
 
