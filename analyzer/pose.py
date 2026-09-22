@@ -5,6 +5,7 @@ import cv2
 import mediapipe as mp
 
 from analyzer.angles import compute_angles, JOINT_LANDMARKS, VISIBILITY_THRESHOLD
+from analyzer.smoothing import smooth_landmarks
 
 logger = logging.getLogger(__name__)
 
@@ -48,13 +49,12 @@ class PoseExtractor:
             raise FileNotFoundError(f"Could not open video: {video_path}")
 
         fps = cap.get(cv2.CAP_PROP_FPS) or 30.0
-        frames = []
+        raw_landmarks = []
 
         with _mp_pose.Pose(
             model_complexity=self.model_complexity,
             static_image_mode=False,
         ) as pose:
-            frame_idx = 0
             while True:
                 ok, frame_bgr = cap.read()
                 if not ok:
@@ -62,16 +62,21 @@ class PoseExtractor:
 
                 frame_rgb = cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2RGB)
                 result = pose.process(frame_rgb)
-
-                frame_data = self._build_frame_data(result, frame_idx, fps)
-                frames.append(frame_data)
-                frame_idx += 1
+                raw_landmarks.append(self._extract_raw_landmarks(result))
 
         cap.release()
+
+        smoothed = smooth_landmarks(raw_landmarks)
+
+        frames = [
+            self._build_frame_data(landmarks, frame_idx, fps)
+            for frame_idx, landmarks in enumerate(smoothed)
+        ]
+
         logger.debug("Extracted %d frames at %.2f fps", len(frames), fps)
         return frames, fps
 
-    def _build_frame_data(self, result, frame_idx: int, fps: float):
+    def _extract_raw_landmarks(self, result):
         if not result.pose_landmarks:
             return None
 
@@ -84,6 +89,11 @@ class PoseExtractor:
                 "z": lm.z,
                 "visibility": lm.visibility,
             }
+        return landmarks
+
+    def _build_frame_data(self, landmarks, frame_idx: int, fps: float):
+        if landmarks is None:
+            return None
 
         for required_name in REQUIRED_LANDMARKS:
             lm = landmarks.get(required_name)
