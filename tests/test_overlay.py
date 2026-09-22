@@ -54,3 +54,22 @@ def test_draw_frame_skips_none_angles_without_crashing():
     frame_data["angles"]["elbow_right"] = None
     out = draw_frame(frame, frame_data, rep_id=0, timestamp_s=0.0, in_rep=True)
     assert out.shape == frame.shape
+
+
+def test_draw_frame_with_out_of_range_draws_without_crashing():
+    frame = _blank_frame()
+    out_with_flags = draw_frame(
+        frame, _frame_data(), rep_id=0, timestamp_s=0.0, in_rep=True,
+        out_of_range=["elbow_at_release", "arc_proxy"],
+    )
+    out_without_flags = draw_frame(frame, _frame_data(), rep_id=0, timestamp_s=0.0, in_rep=True, out_of_range=[])
+    assert out_with_flags.shape == frame.shape
+    # frames differ since one has extra header text drawn
+    assert not np.array_equal(out_with_flags, out_without_flags)
+
+
+def test_draw_frame_out_of_range_none_behaves_like_no_flags():
+    frame = _blank_frame()
+    out_none = draw_frame(frame, _frame_data(), rep_id=0, timestamp_s=0.0, in_rep=True, out_of_range=None)
+    out_empty = draw_frame(frame, _frame_data(), rep_id=0, timestamp_s=0.0, in_rep=True, out_of_range=[])
+    assert np.array_equal(out_none, out_empty)

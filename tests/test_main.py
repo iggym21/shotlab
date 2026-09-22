@@ -61,7 +61,7 @@ def _synthetic_frames(n_reps=2, frames_per_rep=30, fps=30.0):
 
 
 class _StubPoseExtractor:
-    def __init__(self, model_complexity=1):
+    def __init__(self, model_complexity=1, shooting_side="right"):
         pass
 
     def extract(self, video_path):
@@ -134,7 +134,7 @@ def test_main_zero_reps_detected_skips_downstream_stages(tmp_path, monkeypatch):
     output_dir = tmp_path / "output"
 
     class _StaticWristPoseExtractor:
-        def __init__(self, model_complexity=1):
+        def __init__(self, model_complexity=1, shooting_side="right"):
             pass
 
         def extract(self, video_path):
@@ -169,7 +169,7 @@ def test_main_no_usable_frames_exits(tmp_path, monkeypatch):
     _write_blank_video(video_path, n_frames=5)
 
     class _EmptyPoseExtractor:
-        def __init__(self, model_complexity=1):
+        def __init__(self, model_complexity=1, shooting_side="right"):
             pass
 
         def extract(self, video_path):

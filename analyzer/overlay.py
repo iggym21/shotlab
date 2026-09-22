@@ -25,8 +25,11 @@ ANGLE_LABEL_ANCHOR = {
     "knee_right": "right_knee",
     "knee_left": "left_knee",
     "wrist_right": "right_wrist",
+    "wrist_left": "left_wrist",
     "hip_right": "right_hip",
+    "hip_left": "left_hip",
     "shoulder_right": "right_shoulder",
+    "shoulder_left": "left_shoulder",
 }
 
 SKELETON_COLOR_IN_REP = (0, 200, 0)
@@ -43,13 +46,15 @@ def _draw_text_with_outline(frame, text, org, scale=0.5, color=(255, 255, 255)):
     cv2.putText(frame, text, org, cv2.FONT_HERSHEY_SIMPLEX, scale, color, 1, cv2.LINE_AA)
 
 
-def draw_frame(frame, frame_data, rep_id, timestamp_s: float, in_rep: bool):
+def draw_frame(frame, frame_data, rep_id, timestamp_s: float, in_rep: bool, out_of_range=None):
     out = frame.copy()
     height, width = out.shape[:2]
 
     header = f"t={timestamp_s:.2f}s"
     if rep_id is not None:
         header = f"rep {rep_id} | {header}"
+    if out_of_range:
+        header = f"{header} | OOR: {','.join(out_of_range)}"
     _draw_text_with_outline(out, header, (10, 24), scale=0.6)
 
     if frame_data is None:

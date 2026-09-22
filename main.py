@@ -18,11 +18,11 @@ logger = logging.getLogger("shotlab")
 
 
 def _build_frame_rep_lookup(reps):
-    """frame_idx -> (rep_id, in_rep) for every frame covered by any rep."""
+    """frame_idx -> (rep_id, in_rep, out_of_range) for every frame covered by any rep."""
     lookup = {}
     for rep in reps:
         for idx in range(rep["start_frame"], rep["end_frame"] + 1):
-            lookup[idx] = (rep["rep_id"], True)
+            lookup[idx] = (rep["rep_id"], True, rep.get("out_of_range", []))
     return lookup
 
 
@@ -50,10 +50,10 @@ def render_annotated_video(input_path: str, output_dir: str, frames: list, reps:
             break
 
         frame_data = frames[frame_idx] if frame_idx < len(frames) else None
-        rep_id, in_rep = frame_rep_lookup.get(frame_idx, (None, False))
+        rep_id, in_rep, out_of_range = frame_rep_lookup.get(frame_idx, (None, False, None))
         timestamp_s = frame_idx / fps
 
-        annotated = draw_frame(raw_frame, frame_data, rep_id, timestamp_s, in_rep)
+        annotated = draw_frame(raw_frame, frame_data, rep_id, timestamp_s, in_rep, out_of_range=out_of_range)
         writer.write(annotated)
         frame_idx += 1
 
@@ -68,6 +68,10 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument("--output", default="output/", help="Output directory (default: output/).")
     parser.add_argument("--fps", type=float, default=None, help="Override detected video fps.")
     parser.add_argument("--min-reps", type=int, default=3, help="Minimum reps required to run the classifier.")
+    parser.add_argument(
+        "--shooting-side", choices=("right", "left"), default="right",
+        help="Which arm is the shooting arm (default: right).",
+    )
     parser.add_argument("--no-overlay", action="store_true", help="Skip annotated video, stats only.")
     parser.add_argument("--verbose", action="store_true", help="Enable debug logging.")
     return parser
@@ -88,7 +92,7 @@ def main(argv=None):
 
     os.makedirs(args.output, exist_ok=True)
 
-    frames, detected_fps = PoseExtractor().extract(args.input)
+    frames, detected_fps = PoseExtractor(shooting_side=args.shooting_side).extract(args.input)
     fps = args.fps or detected_fps
     print(f"Extracted {len(frames)} frames at {fps:.2f} fps.")
 
@@ -96,7 +100,7 @@ def main(argv=None):
         logger.error("No usable pose landmarks detected in any frame of %s.", args.input)
         sys.exit(1)
 
-    reps_bounds = segment_reps(frames, fps)
+    reps_bounds = segment_reps(frames, fps, shooting_side=args.shooting_side)
     print(f"Detected {len(reps_bounds)} rep(s):")
     for i, (start, release, end) in enumerate(reps_bounds):
         print(
@@ -109,7 +113,7 @@ def main(argv=None):
         logger.warning("No reps detected — skipping metrics, classifier, and report.")
         return frames, fps, [], {}, args
 
-    reps = compute_rep_metrics(reps_bounds, frames)
+    reps = compute_rep_metrics(reps_bounds, frames, shooting_side=args.shooting_side)
     if len(reps) < args.min_reps:
         logger.info(
             "Only %d rep(s) detected (< --min-reps=%d); classifier will label all reps 'unclassified'.",
