@@ -1,0 +1,10 @@
+output/
+__pycache__/
+*.pyc
+.pytest_cache/
+*.egg-info/
+.venv/
+venv/
+*.mp4
+!clips/**/*.mp4
+.DS_Store
