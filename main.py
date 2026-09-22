@@ -5,6 +5,7 @@ import os
 import sys
 
 from analyzer.pose import PoseExtractor
+from analyzer.segmenter import segment_reps
 
 logger = logging.getLogger("shotlab")
 
@@ -39,7 +40,20 @@ def main(argv=None):
     fps = args.fps or detected_fps
     print(f"Extracted {len(frames)} frames at {fps:.2f} fps.")
 
-    return frames, fps, args
+    if not any(frame is not None for frame in frames):
+        logger.error("No usable pose landmarks detected in any frame of %s.", args.input)
+        sys.exit(1)
+
+    reps_bounds = segment_reps(frames, fps)
+    print(f"Detected {len(reps_bounds)} rep(s):")
+    for i, (start, release, end) in enumerate(reps_bounds):
+        print(
+            f"  rep {i}: start={start} ({start/fps:.2f}s) "
+            f"release={release} ({release/fps:.2f}s) "
+            f"end={end} ({end/fps:.2f}s)"
+        )
+
+    return frames, fps, reps_bounds, args
 
 
 if __name__ == "__main__":
