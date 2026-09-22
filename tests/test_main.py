@@ -124,6 +124,42 @@ def test_main_missing_input_file_exits(tmp_path):
     assert exc_info.value.code == 1
 
 
+def test_main_zero_reps_detected_skips_downstream_stages(tmp_path, monkeypatch):
+    video_path = tmp_path / "clip.mp4"
+    _write_blank_video(video_path, n_frames=10)
+    output_dir = tmp_path / "output"
+
+    class _StaticWristPoseExtractor:
+        def __init__(self, model_complexity=1):
+            pass
+
+        def extract(self, video_path):
+            # Wrist never moves -> segmenter finds no peak-to-trough cycle.
+            frames = []
+            for i in range(10):
+                frames.append({
+                    "frame_idx": i,
+                    "timestamp_s": i / 30.0,
+                    "landmarks": {
+                        "right_wrist": {"x": 0.5, "y": 0.5, "z": 0.0, "visibility": 1.0},
+                    },
+                    "angles": {},
+                })
+            return frames, 30.0
+
+    monkeypatch.setattr(main_module, "PoseExtractor", _StaticWristPoseExtractor)
+
+    frames, fps, reps, session_agg, args = main_module.main([
+        "--input", str(video_path),
+        "--output", str(output_dir),
+    ])
+
+    assert reps == []
+    assert session_agg == {}
+    assert not (output_dir / "session_report.json").exists()
+    assert not (output_dir / "annotated_clip.mp4").exists()
+
+
 def test_main_no_usable_frames_exits(tmp_path, monkeypatch):
     video_path = tmp_path / "clip.mp4"
     _write_blank_video(video_path, n_frames=5)

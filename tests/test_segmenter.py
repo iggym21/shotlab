@@ -67,6 +67,10 @@ def test_segment_reps_handles_none_frames():
     assert len(reps) == 2
 
 
+def test_segment_reps_empty_frame_list_returns_empty():
+    assert segment_reps([], 30.0) == []
+
+
 def test_segment_reps_rejects_too_short_reps():
     # Single rep spanning only 3 frames at 30fps = 0.1s, well under 0.5s default minimum.
     y = np.array([0.8, 0.5, 0.2, 0.5, 0.8])
