@@ -88,6 +88,7 @@ def test_main_end_to_end_writes_all_artifacts(tmp_path, monkeypatch):
     }
 
     assert (output_dir / "session_report.json").exists()
+    assert (output_dir / "session_report.csv").exists()
     assert (output_dir / "session_summary.png").exists()
     assert (output_dir / "classifier.pkl").exists()
     assert (output_dir / "annotated_clip.mp4").exists()

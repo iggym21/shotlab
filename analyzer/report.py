@@ -1,4 +1,5 @@
-"""Session report artifacts: JSON + matplotlib summary chart."""
+"""Session report artifacts: JSON + CSV + matplotlib summary chart."""
+import csv
 import json
 import os
 
@@ -13,6 +14,35 @@ PANELS = (
     ("wrist_follow_through", "Wrist Follow-Through (deg)"),
     ("arc_proxy", "Arc Proxy — Shoulder Elevation at Release (deg)"),
 )
+
+CSV_FIELDS = (
+    "rep_id",
+    "start_frame",
+    "release_frame",
+    "end_frame",
+    "elbow_at_release",
+    "knee_bend_at_setup",
+    "wrist_follow_through",
+    "arc_proxy",
+    "elbow_flare",
+    "confidence",
+    "low_confidence",
+    "out_of_range",
+    "label",
+)
+
+
+def save_csv(reps: list, output_dir: str) -> str:
+    os.makedirs(output_dir, exist_ok=True)
+    path = os.path.join(output_dir, "session_report.csv")
+    with open(path, "w", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=CSV_FIELDS, extrasaction="ignore")
+        writer.writeheader()
+        for rep in reps:
+            row = dict(rep)
+            row["out_of_range"] = ";".join(row.get("out_of_range") or [])
+            writer.writerow(row)
+    return path
 
 
 def save_json(session_agg: dict, reps: list, output_dir: str) -> str:

@@ -1,7 +1,8 @@
+import csv
 import json
 
 from analyzer.metrics import aggregate_session
-from analyzer.report import save_json, save_chart
+from analyzer.report import save_json, save_chart, save_csv
 
 
 def _reps(n=4):
@@ -71,3 +72,26 @@ def test_save_json_creates_output_dir_if_missing(tmp_path):
     path = save_json({}, [], str(nested))
     assert nested.exists()
     assert path == str(nested / "session_report.json")
+
+
+def test_save_csv_writes_one_row_per_rep(tmp_path):
+    reps = _reps(3)
+    reps[1]["out_of_range"] = ["elbow_at_release", "arc_proxy"]
+    path = save_csv(reps, str(tmp_path))
+
+    assert path == str(tmp_path / "session_report.csv")
+    with open(path, newline="") as f:
+        rows = list(csv.DictReader(f))
+
+    assert len(rows) == 3
+    assert rows[0]["rep_id"] == "0"
+    assert rows[0]["label"] == "consistent"
+    assert rows[1]["out_of_range"] == "elbow_at_release;arc_proxy"
+    assert rows[0]["out_of_range"] == ""
+
+
+def test_save_csv_handles_empty_reps_writes_header_only(tmp_path):
+    path = save_csv([], str(tmp_path))
+    with open(path, newline="") as f:
+        rows = list(csv.DictReader(f))
+    assert rows == []

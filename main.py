@@ -10,7 +10,7 @@ from analyzer.pose import PoseExtractor
 from analyzer.segmenter import segment_reps
 from analyzer.metrics import compute_rep_metrics, aggregate_session
 from analyzer.classifier import train_and_label
-from analyzer.report import save_json, save_chart
+from analyzer.report import save_json, save_chart, save_csv
 from analyzer.overlay import draw_frame
 
 logger = logging.getLogger("shotlab")
@@ -117,17 +117,26 @@ def main(argv=None):
     reps = train_and_label(reps, output_dir=args.output, min_reps=args.min_reps)
     session_agg = aggregate_session(reps)
 
-    print(f"\n{'rep_id':>6} | {'elbow':>7} | {'knee':>7} | {'wrist':>7} | {'arc':>7} | label")
+    print(
+        f"\n{'rep_id':>6} | {'elbow':>7} | {'knee':>7} | {'wrist':>7} | {'arc':>7} | "
+        f"{'flare':>6} | {'conf':>5} | label | flags"
+    )
     for rep in reps:
+        flags = ",".join(rep["out_of_range"]) if rep["out_of_range"] else "-"
+        if rep["low_confidence"]:
+            flags = f"{flags},low_confidence" if flags != "-" else "low_confidence"
         print(
             f"{rep['rep_id']:>6} | {rep['elbow_at_release']:>7.1f} | "
             f"{rep['knee_bend_at_setup']:>7.1f} | {rep['wrist_follow_through']:>7.1f} | "
-            f"{rep['arc_proxy']:>7.1f} | {rep['label']}"
+            f"{rep['arc_proxy']:>7.1f} | {rep['elbow_flare']:>6.2f} | {rep['confidence']:>5.2f} | "
+            f"{rep['label']} | {flags}"
         )
 
     json_path = save_json(session_agg, reps, args.output)
+    csv_path = save_csv(reps, args.output)
     chart_path = save_chart(reps, session_agg, args.output)
     print(f"\nWrote {json_path}")
+    print(f"Wrote {csv_path}")
     print(f"Wrote {chart_path}")
 
     if not args.no_overlay:
