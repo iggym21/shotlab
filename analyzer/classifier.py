@@ -12,6 +12,7 @@ FEATURE_FIELDS = (
     "knee_bend_at_setup",
     "wrist_follow_through",
     "arc_proxy",
+    "elbow_flare",
 )
 
 

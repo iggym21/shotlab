@@ -15,6 +15,10 @@ def _reps(n=4):
             "knee_bend_at_setup": 140 + i,
             "wrist_follow_through": 80 + i,
             "arc_proxy": 90 + i,
+            "elbow_flare": 0.01 * i,
+            "confidence": 0.95,
+            "low_confidence": False,
+            "out_of_range": [],
             "label": "consistent",
         }
         for i in range(n)
@@ -33,7 +37,7 @@ def test_save_json_writes_expected_structure(tmp_path):
     assert data["reps"] == reps
     assert data["session_summary"] == agg
     assert set(data["session_summary"].keys()) == {
-        "elbow_at_release", "knee_bend_at_setup", "wrist_follow_through", "arc_proxy",
+        "elbow_at_release", "knee_bend_at_setup", "wrist_follow_through", "arc_proxy", "elbow_flare",
     }
 
 

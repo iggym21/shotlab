@@ -5,13 +5,14 @@ import pytest
 from analyzer.classifier import train_and_label
 
 
-def _rep(rep_id, elbow, knee, wrist, arc):
+def _rep(rep_id, elbow, knee, wrist, arc, flare=0.0):
     return {
         "rep_id": rep_id,
         "elbow_at_release": elbow,
         "knee_bend_at_setup": knee,
         "wrist_follow_through": wrist,
         "arc_proxy": arc,
+        "elbow_flare": flare,
         "label": "unlabeled",
     }
 

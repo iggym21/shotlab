@@ -39,6 +39,7 @@ def _synthetic_frames(n_reps=2, frames_per_rep=30, fps=30.0):
             "frame_idx": i,
             "timestamp_s": i / fps,
             "landmarks": {
+                "left_shoulder": {"x": 0.3, "y": 0.3, "z": 0.0, "visibility": 1.0},
                 "right_shoulder": {"x": 0.4, "y": 0.3, "z": 0.0, "visibility": 1.0},
                 "right_elbow": {"x": 0.5, "y": 0.4, "z": 0.0, "visibility": 1.0},
                 "right_wrist": {"x": 0.5, "y": y, "z": 0.0, "visibility": 1.0},
@@ -83,7 +84,7 @@ def test_main_end_to_end_writes_all_artifacts(tmp_path, monkeypatch):
     assert len(reps) == 2
     assert set(r["label"] for r in reps) <= {"consistent", "inconsistent"}
     assert set(session_agg.keys()) == {
-        "elbow_at_release", "knee_bend_at_setup", "wrist_follow_through", "arc_proxy",
+        "elbow_at_release", "knee_bend_at_setup", "wrist_follow_through", "arc_proxy", "elbow_flare",
     }
 
     assert (output_dir / "session_report.json").exists()
