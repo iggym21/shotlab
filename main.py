@@ -11,6 +11,7 @@ from analyzer.segmenter import segment_reps
 from analyzer.metrics import compute_rep_metrics, aggregate_session
 from analyzer.classifier import train_and_label
 from analyzer.report import save_json, save_chart, save_csv
+from analyzer.history import append_session, save_trend_chart
 from analyzer.overlay import draw_frame
 
 logger = logging.getLogger("shotlab")
@@ -138,6 +139,10 @@ def main(argv=None):
     print(f"\nWrote {json_path}")
     print(f"Wrote {csv_path}")
     print(f"Wrote {chart_path}")
+
+    history = append_session(args.output, args.input, session_agg, reps)
+    trend_path = save_trend_chart(history, args.output)
+    print(f"Wrote {trend_path}")
 
     if not args.no_overlay:
         video_path = render_annotated_video(args.input, args.output, frames, reps, fps)
