@@ -8,3 +8,4 @@ venv/
 *.mp4
 !clips/**/*.mp4
 .DS_Store
+docs/
