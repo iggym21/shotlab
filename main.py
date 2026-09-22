@@ -8,6 +8,7 @@ from analyzer.pose import PoseExtractor
 from analyzer.segmenter import segment_reps
 from analyzer.metrics import compute_rep_metrics, aggregate_session
 from analyzer.classifier import train_and_label
+from analyzer.report import save_json, save_chart
 
 logger = logging.getLogger("shotlab")
 
@@ -75,6 +76,11 @@ def main(argv=None):
             f"{rep['knee_bend_at_setup']:>7.1f} | {rep['wrist_follow_through']:>7.1f} | "
             f"{rep['arc_proxy']:>7.1f} | {rep['label']}"
         )
+
+    json_path = save_json(session_agg, reps, args.output)
+    chart_path = save_chart(reps, session_agg, args.output)
+    print(f"\nWrote {json_path}")
+    print(f"Wrote {chart_path}")
 
     return frames, fps, reps, session_agg, args
 
