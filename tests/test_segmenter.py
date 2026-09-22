@@ -71,6 +71,29 @@ def test_segment_reps_empty_frame_list_returns_empty():
     assert segment_reps([], 30.0) == []
 
 
+def test_segment_reps_uses_left_wrist_when_shooting_side_left():
+    y = _synthetic_reps(n_reps=2, frames_per_rep=30)
+    frames = [
+        {
+            "frame_idx": 0,
+            "timestamp_s": 0.0,
+            "landmarks": {"left_wrist": {"x": 0.5, "y": val, "z": 0.0, "visibility": 1.0}},
+            "angles": {},
+        }
+        for val in y
+    ]
+    fps = 30.0
+    reps = segment_reps(frames, fps, min_rep_duration_s=0.3, min_gap_s=0.1, shooting_side="left")
+    assert len(reps) == 2
+
+
+def test_segment_reps_raises_clear_error_when_shooting_side_wrist_missing():
+    y = _synthetic_reps(n_reps=1, frames_per_rep=30)
+    frames = _make_frames(y)  # only has right_wrist
+    with pytest.raises(ValueError, match="left_wrist"):
+        segment_reps(frames, 30.0, shooting_side="left")
+
+
 def test_segment_reps_rejects_too_short_reps():
     # Single rep spanning only 3 frames at 30fps = 0.1s, well under 0.5s default minimum.
     y = np.array([0.8, 0.5, 0.2, 0.5, 0.8])

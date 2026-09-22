@@ -3,16 +3,18 @@ import numpy as np
 from scipy.signal import find_peaks, savgol_filter
 
 
-def _extract_wrist_y(frames):
+def _extract_wrist_y(frames, wrist_name):
     idx = np.arange(len(frames))
     y = np.full(len(frames), np.nan)
     for i, frame in enumerate(frames):
         if frame is not None:
-            y[i] = frame["landmarks"]["right_wrist"]["y"]
+            landmark = frame["landmarks"].get(wrist_name)
+            if landmark is not None:
+                y[i] = landmark["y"]
 
     valid = ~np.isnan(y)
     if not valid.any():
-        raise ValueError("No frames with visible right_wrist to segment reps from.")
+        raise ValueError(f"No frames with visible {wrist_name} to segment reps from.")
     if not valid.all():
         y = np.interp(idx, idx[valid], y[valid])
     return y
@@ -35,11 +37,12 @@ def _nearest_following_peak(peaks_idx, target, default):
     return int(candidates.min()) if len(candidates) else default
 
 
-def segment_reps(frames, fps, min_rep_duration_s: float = 0.5, min_gap_s: float = 0.3):
+def segment_reps(frames, fps, min_rep_duration_s: float = 0.5, min_gap_s: float = 0.3, shooting_side: str = "right"):
     if len(frames) == 0:
         return []
 
-    y = _extract_wrist_y(frames)
+    wrist_name = f"{shooting_side}_wrist"
+    y = _extract_wrist_y(frames, wrist_name)
     y_smooth = _smooth(y)
 
     min_gap_frames = max(1, int(round(min_gap_s * fps)))
